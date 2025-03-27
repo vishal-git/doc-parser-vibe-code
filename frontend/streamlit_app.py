@@ -50,7 +50,7 @@ def get_page_details(doc_id: int, page_number: int) -> Dict[str, Any]:
         return {}
     return response.json()
 
-def display_pdf_page(pdf_bytes: bytes, doc_id: int, page_number: int, total_pages: int) -> None:
+def display_pdf_page(pdf_bytes: bytes, page_number: int, total_pages: int) -> None:
     """Display a PDF page with bounding boxes."""
     # Convert PDF page to image
     images = convert_from_bytes(pdf_bytes, first_page=page_number, last_page=page_number)
@@ -65,23 +65,19 @@ def display_pdf_page(pdf_bytes: bytes, doc_id: int, page_number: int, total_page
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         if page_number > 1:
-            if st.button("Previous Page", key=f"prev_{doc_id}"):
-                st.session_state[f"page_{doc_id}"] = page_number - 1
+            if st.button("Previous Page"):
+                st.session_state.current_page = page_number - 1
     with col2:
         st.write(f"Page {page_number} of {total_pages}")
     with col3:
         if page_number < total_pages:
-            if st.button("Next Page", key=f"next_{doc_id}"):
-                st.session_state[f"page_{doc_id}"] = page_number + 1
+            if st.button("Next Page"):
+                st.session_state.current_page = page_number + 1
 
 def main():
-    # Initialize session state for current document and uploaded files
-    if 'current_doc_index' not in st.session_state:
-        st.session_state.current_doc_index = 0
-    if 'uploaded_files' not in st.session_state:
-        st.session_state.uploaded_files = None
-    if 'processed_documents' not in st.session_state:
-        st.session_state.processed_documents = None
+    # Initialize session state for page navigation
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 1
 
     # Custom CSS for better layout and dark theme support
     st.markdown("""
@@ -126,31 +122,22 @@ def main():
         accept_multiple_files=True
     )
 
-    # Store uploaded files in session state
     if uploaded_files:
-        st.session_state.uploaded_files = uploaded_files
-
-    if st.session_state.uploaded_files:
-        if len(st.session_state.uploaded_files) > 5:
+        if len(uploaded_files) > 5:
             st.error("Maximum 5 documents allowed per upload")
             return
 
         if st.button("Process Documents"):
             with st.spinner("Processing documents..."):
                 # Upload documents
-                documents = upload_documents(st.session_state.uploaded_files)
+                documents = upload_documents(uploaded_files)
                 
                 if documents:
-                    st.session_state.processed_documents = documents
                     st.success(f"Successfully processed {len(documents)} documents")
                     
                     # Create tabs for each document
-                    for idx, doc in enumerate(documents):
-                        # Initialize page number for this document if not exists
-                        if f"page_{doc['id']}" not in st.session_state:
-                            st.session_state[f"page_{doc['id']}"] = 1
-                            
-                        with st.expander(f"Document: {doc['filename']}", expanded=idx == st.session_state.current_doc_index):
+                    for doc in documents:
+                        with st.expander(f"Document: {doc['filename']}", expanded=True):
                             # Get document fields
                             fields = get_document_fields(doc['id'])
                             
@@ -160,12 +147,7 @@ def main():
                             with col1:
                                 st.subheader("Document Viewer")
                                 # Display PDF page with bounding boxes
-                                display_pdf_page(
-                                    st.session_state.uploaded_files[idx].getvalue(),
-                                    doc['id'],
-                                    st.session_state[f"page_{doc['id']}"],
-                                    doc['total_pages']
-                                )
+                                display_pdf_page(uploaded_files[0].getvalue(), st.session_state.current_page, doc['total_pages'])
                             
                             with col2:
                                 st.subheader("Extracted Fields")
@@ -182,45 +164,6 @@ def main():
                                     st.table(field_data)
                                 else:
                                     st.info("No fields extracted from this document")
-        elif st.session_state.processed_documents:
-            # Display already processed documents
-            for idx, doc in enumerate(st.session_state.processed_documents):
-                # Initialize page number for this document if not exists
-                if f"page_{doc['id']}" not in st.session_state:
-                    st.session_state[f"page_{doc['id']}"] = 1
-                    
-                with st.expander(f"Document: {doc['filename']}", expanded=idx == st.session_state.current_doc_index):
-                    # Get document fields
-                    fields = get_document_fields(doc['id'])
-                    
-                    # Create two columns with better proportions (2:3 ratio)
-                    col1, col2 = st.columns([2, 3])
-                    
-                    with col1:
-                        st.subheader("Document Viewer")
-                        # Display PDF page with bounding boxes
-                        display_pdf_page(
-                            st.session_state.uploaded_files[idx].getvalue(),
-                            doc['id'],
-                            st.session_state[f"page_{doc['id']}"],
-                            doc['total_pages']
-                        )
-                    
-                    with col2:
-                        st.subheader("Extracted Fields")
-                        # Display fields in a table with better formatting
-                        if fields:
-                            field_data = []
-                            for field in fields:
-                                field_data.append({
-                                    "Field": field['field_name'],
-                                    "Value": field['field_value'],
-                                    "Section": field['section_name'],
-                                    "Page": field['page_number']
-                                })
-                            st.table(field_data)
-                        else:
-                            st.info("No fields extracted from this document")
 
 if __name__ == "__main__":
     main()

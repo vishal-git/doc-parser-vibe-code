@@ -1,188 +1,115 @@
+This entire codebase (including this note here) is developed by 100% vibe coding using Cursor AI. It took me less than a couple of hours to do this from start to finish.
+
 # Document Parser Application
 
-A powerful document parsing application that automatically extracts text, identifies sections, and extracts key-value pairs from PDF documents using OpenAI's LLM capabilities.
+A powerful document parsing application that allows users to upload PDF documents, extract text, identify sections, and extract key-value pairs using OpenAI's API. The application features a document viewer and displays extracted fields with bounding boxes.
 
 ## Features
 
-- Upload and process multiple PDF documents (up to 5 documents per run)
-- Automatic text extraction from PDF documents
-- Section identification (e.g., summary, call detail records)
-- Key-value pair extraction using OpenAI's LLM
-- Interactive document viewer with page navigation
-- Visual display of extracted fields and values
-- Bounding box visualization for extracted fields
-- Section break indicators
-- Document-by-document navigation
-- Local database storage for extracted information
-- Type validation using Pydantic models
+- Upload multiple PDF documents (up to 5 at a time)
+- Extract text and identify sections from PDFs
+- Extract key-value pairs using OpenAI's API
+- Display PDF documents with bounding boxes
+- Show extracted fields in a table format
+- Modern UI with Streamlit
+- FastAPI backend for efficient processing
 
 ## Project Structure
 
 ```
 doc-parser/
 ├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI application entry point
-│   ├── config.py            # Configuration settings
+│   ├── main.py              # FastAPI application
 │   ├── database/
-│   │   ├── __init__.py
-│   │   ├── models.py        # SQLAlchemy database models
-│   │   └── database.py      # Database connection and operations
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   ├── document.py      # Pydantic models for document data
-│   │   └── field.py         # Pydantic models for extracted fields
+│   │   ├── models.py        # Database models
+│   │   └── database.py      # Database configuration
 │   ├── services/
-│   │   ├── __init__.py
-│   │   ├── pdf_service.py   # PDF processing functions
-│   │   ├── llm_service.py   # OpenAI API integration
-│   │   └── extraction_service.py  # Key-value extraction logic
-│   └── utils/
-│       ├── __init__.py
-│       └── helpers.py       # Utility functions
+│   │   ├── pdf_service.py   # PDF processing service
+│   │   ├── llm_service.py   # OpenAI API service
+│   │   └── extraction_service.py  # Field extraction service
+│   └── schemas/
+│       └── document.py      # Pydantic schemas
 ├── frontend/
-│   ├── __init__.py
-│   └── streamlit_app.py     # Streamlit frontend application
-├── requirements.txt         # Project dependencies
-└── README.md               # This file
+│   └── streamlit_app.py     # Streamlit frontend
+├── requirements.txt         # Python dependencies
+└── README.md               # Project documentation
 ```
 
-## Dependencies
+## Prerequisites
 
 - Python 3.8+
-- FastAPI
-- Streamlit
-- PyPDF2
-- OpenAI
-- SQLAlchemy
-- Pydantic
-- pdf2image
-- Pillow
-- python-multipart
-- uvicorn
+- Poppler (for PDF processing)
+- OpenAI API key
 
-## Setup
+## Installation
 
 1. Clone the repository:
-```bash
-git clone <repository-url>
-cd doc-parser
-```
+   ```bash
+   git clone <repository-url>
+   cd doc-parser
+   ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+2. Install Poppler:
+   - On Ubuntu/Debian:
+     ```bash
+     sudo apt-get install poppler-utils
+     ```
+   - On macOS:
+     ```bash
+     brew install poppler
+     ```
+   - On Windows:
+     Download and install from: http://blog.alivate.com.au/poppler-windows/
 
-3. Install uv (if not already installed):
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+3. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-4. Install dependencies using uv:
-```bash
-uv pip install -r requirements.txt
-```
+4. Set up environment variables:
+   ```bash
+   export OPENAI_API_KEY=your_api_key_here
+   ```
 
-5. Set up environment variables:
-Create a `.env` file in the root directory with:
-```
-OPENAI_API_KEY=your_api_key_here
-DATABASE_URL=sqlite:///./doc_parser.db
-```
+## Running the Application
+
+1. Start the FastAPI backend:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+2. Start the Streamlit frontend:
+   ```bash
+   streamlit run frontend/streamlit_app.py
+   ```
+
+3. Open your browser and navigate to:
+   - Frontend: http://localhost:8501
+   - API Documentation: http://localhost:8000/docs
 
 ## Usage
 
-1. Start the FastAPI backend:
-```bash
-uvicorn app.main:app --reload
-```
-
-2. Start the Streamlit frontend:
-```bash
-streamlit run frontend/streamlit_app.py
-```
-
-3. Open your browser and navigate to `http://localhost:8501`
-
-## Application Flow
-
-1. User uploads up to 5 PDF documents through the Streamlit interface
-2. Backend processes each document:
-   - Extracts text using PyPDF2
-   - Identifies document sections
-   - Sends text to OpenAI LLM for key-value extraction
-   - Stores results in local database
-3. Frontend displays:
-   - PDF viewer with page navigation
-   - Extracted fields and values
-   - Bounding boxes for fields
-   - Section break indicators
-
-## Data Models
-
-### Pydantic Models
-
-```python
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
-from datetime import datetime
-
-class BoundingBox(BaseModel):
-    x: float
-    y: float
-    width: float
-    height: float
-
-class ExtractedField(BaseModel):
-    field_name: str
-    field_value: str
-    description: Optional[str] = None
-    bounding_box: BoundingBox
-    section_name: str
-    page_number: int
-
-class Document(BaseModel):
-    id: Optional[int] = None
-    filename: str
-    upload_date: datetime
-    total_pages: int
-    extracted_fields: List[ExtractedField] = []
-```
-
-### Database Schema
-
-The application uses SQLAlchemy with the following main tables:
-
-- Documents
-  - id (Primary Key)
-  - filename
-  - upload_date
-  - total_pages
-
-- ExtractedFields
-  - id (Primary Key)
-  - document_id (Foreign Key)
-  - page_number
-  - field_name
-  - field_value
-  - description
-  - bounding_box_coordinates
-  - section_name
+1. Upload PDF documents through the Streamlit interface
+2. Click "Process Documents" to start extraction
+3. View the extracted fields and their locations in the document
+4. Navigate through pages using the page controls
 
 ## API Endpoints
 
-- POST `/api/upload`: Upload PDF documents
-- GET `/api/documents`: List all processed documents
-- GET `/api/documents/{doc_id}`: Get document details
-- GET `/api/documents/{doc_id}/fields`: Get extracted fields for a document
-- GET `/api/documents/{doc_id}/pages/{page_number}`: Get page details
+- `POST /api/upload`: Upload PDF documents
+- `GET /api/documents`: List all documents
+- `GET /api/documents/{doc_id}`: Get document details
+- `GET /api/documents/{doc_id}/fields`: Get extracted fields
+- `GET /api/documents/{doc_id}/pages/{page_number}`: Get page details
 
 ## Contributing
 
-This is a personal project and is not currently accepting contributions.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
