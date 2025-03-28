@@ -1,4 +1,4 @@
-This entire codebase (including this note here) is developed by 100% vibe coding using Cursor AI. It took me less than a couple of hours to do this from start to finish. The entire chat history is available in [cursorai_chat_history.pdf](./cursorai_chat_history.pdf).
+This entire codebase is developed by 100% vibe coding using Cursor AI. It took me less than a couple of hours to do this from start to finish. The entire chat history is available in [cursorai_chat_history.pdf](./cursorai_chat_history.pdf).
 
 # Document Parser Application
 
